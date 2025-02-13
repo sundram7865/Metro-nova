@@ -1,12 +1,7 @@
 import { useSelector } from 'react-redux';
 import { useRef, useState, useEffect } from 'react';
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from 'firebase/storage';
-import { app } from '../firebase';
+
+import axios from 'axios';
 import {
   updateUserStart,
   updateUserSuccess,
@@ -42,29 +37,27 @@ export default function Profile() {
     }
   }, [file]);
 
-  const handleFileUpload = (file) => {
-    const storage = getStorage(app);
-    const fileName = new Date().getTime() + file.name;
-    const storageRef = ref(storage, fileName);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+  
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setFilePerc(Math.round(progress));
-      },
-      (error) => {
-        setFileUploadError(true);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) =>
-          setFormData({ ...formData, avatar: downloadURL })
-        );
-      }
-    );
+  const handleFileUpload = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset',"mern-state"); // Replace with Cloudinary's upload preset
+    formData.append('cloud_name', 'dxv0d8lce'); // Replace with your Cloudinary Cloud Name
+  
+    try {
+      const res = await axios.post(
+        `https://api.cloudinary.com/v1_1/dxv0d8lce/image/upload`,
+        formData
+      );
+  
+      setFormData((prev) => ({ ...prev, avatar: res.data.secure_url }));
+    } catch (error) {
+      console.error('Error uploading to Cloudinary:', error);
+      setFileUploadError(true);
+    }
   };
+  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
